@@ -8,6 +8,7 @@ import TopQuestions from './TopQuestions';
 import RecentQuestions from './RecentQuestions';
 import EmptyState from './EmptyState';
 import NameGate from './NameGate';
+import toast from 'react-hot-toast';
 import {
   fetchTopQuestions,
   fetchRecentQuestions,
@@ -41,9 +42,14 @@ export default function App() {
   };
 
   const loadData = useCallback(async () => {
-    const [top, recent] = await Promise.all([fetchTopQuestions(), fetchRecentQuestions()]);
-    setTopQuestions(top);
-    setRecentQuestions(recent);
+    try {
+      const [top, recent] = await Promise.all([fetchTopQuestions(), fetchRecentQuestions()]);
+      setTopQuestions(top);
+      setRecentQuestions(recent);
+    } catch (err) {
+      console.error('Failed to load questions:', err);
+      toast.error('Could not load questions — check your Supabase connection.');
+    }
   }, []);
 
   useEffect(() => {
@@ -59,15 +65,26 @@ export default function App() {
   }
 
   const handlePost = async (data) => {
-    await postQuestion(data);
-    await loadData();
+    try {
+      await postQuestion(data);
+      await loadData();
+    } catch (err) {
+      console.error('Failed to post question:', err);
+      toast.error('Failed to post question — please try again.');
+      throw err; // re-throw so HeroAskSection resets its submit state
+    }
   };
 
   const handleSearch = async (keyword) => {
     setSearchQuery(keyword);
     if (!keyword) { setSearchResults(null); return; }
-    const results = await searchQuestions(keyword);
-    setSearchResults(results);
+    try {
+      const results = await searchQuestions(keyword);
+      setSearchResults(results);
+    } catch (err) {
+      console.error('Search failed:', err);
+      toast.error('Search failed — please try again.');
+    }
   };
 
   const handleUpvote = async (id) => {
